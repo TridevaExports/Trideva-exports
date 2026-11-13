@@ -1,0 +1,13 @@
+{
+  "name": "trideva-exports",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Static frontend ready'"
+  },
+  "dependencies": {
+    "openai": "^4.85.0"
+  }
+}
