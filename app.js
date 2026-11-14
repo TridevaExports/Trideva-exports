@@ -1,116 +1,269 @@
 /**
- * TRIDEVA EXPORTS - Application Orchestration & AI Trade Desk Client
+ * TRIDEVA EXPORTS
+ * 3D interaction, mobile navigation, RFQ tray, and accessibility helpers.
  */
-(function () {
-  // Year stamp
-  const yearEl = document.getElementById('year');
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  // Floating AI Assistant Elements
-  const launcher = document.getElementById('aiLauncher');
-  const windowModal = document.getElementById('aiWindow');
-  const closeBtn = document.getElementById('aiClose');
-  const form = document.getElementById('aiForm');
-  const input = document.getElementById('aiInput');
-  const messagesBox = document.getElementById('aiMessages');
+(() => {
+  "use strict";
 
-  if (!launcher || !windowModal || !form) return;
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
 
-  const conversationHistory = [];
+  const isTouchDevice =
+    "ontouchstart" in window ||
+    navigator.maxTouchPoints > 0;
 
-  launcher.addEventListener('click', () => {
-    windowModal.classList.toggle('open');
-    if (windowModal.classList.contains('open') && input) {
-      input.focus();
+  document.addEventListener("DOMContentLoaded", init);
+
+  function init() {
+    initCards();
+    initMobileNavigation();
+    initRFQTray();
+    initDeviceOrientation();
+  }
+
+  /*
+   * 1. Interactive 3D card tilt and specular glare
+   */
+  function initCards() {
+    const cards = document.querySelectorAll(".card, .lux-card");
+
+    if (!cards.length || prefersReducedMotion) {
+      return;
     }
-  });
 
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      windowModal.classList.remove('open');
+    cards.forEach((card) => {
+      let frame = null;
+
+      const resetCard = () => {
+        card.style.setProperty("--rx", "0deg");
+        card.style.setProperty("--ry", "0deg");
+        card.style.setProperty("--mouse-x", "50%");
+        card.style.setProperty("--mouse-y", "50%");
+      };
+
+      const updateCard = (event) => {
+        if (isTouchDevice && event.pointerType !== "mouse") {
+          return;
+        }
+
+        const rect = card.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const percentX = Math.max(0, Math.min(1, x / rect.width));
+        const percentY = Math.max(0, Math.min(1, y / rect.height));
+
+        const maxTilt = 7;
+        const rotateY = (percentX - 0.5) * maxTilt * 2;
+        const rotateX = (0.5 - percentY) * maxTilt * 2;
+
+        if (frame) {
+          cancelAnimationFrame(frame);
+        }
+
+        frame = requestAnimationFrame(() => {
+          card.style.setProperty("--rx", `${rotateX.toFixed(2)}deg`);
+          card.style.setProperty("--ry", `${rotateY.toFixed(2)}deg`);
+          card.style.setProperty("--mouse-x", `${x}px`);
+          card.style.setProperty("--mouse-y", `${y}px`);
+        });
+      };
+
+      card.addEventListener("pointermove", updateCard, {
+        passive: true
+      });
+
+      card.addEventListener("pointerleave", resetCard);
+      card.addEventListener("pointercancel", resetCard);
     });
   }
 
-  function appendChatBubble(text, role) {
-    const bubble = document.createElement('div');
-    bubble.className = `msg ${role}`;
-    bubble.textContent = text;
-    messagesBox.appendChild(bubble);
-    messagesBox.scrollTop = messagesBox.scrollHeight;
-    return bubble;
+  /*
+   * 2. Mobile navigation
+   */
+  function initMobileNavigation() {
+    const nav = document.querySelector(".nav");
+    const navLinks = document.querySelector(".navlinks");
+    const navActions = document.querySelector(".nav-actions");
+
+    if (!navLinks || !navActions) {
+      return;
+    }
+
+    let toggle = document.querySelector(".mobile-nav-toggle");
+
+    if (!toggle) {
+      toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "btn btn-outline mobile-nav-toggle";
+      toggle.setAttribute("aria-label", "Toggle navigation");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.innerHTML = "☰";
+      navActions.prepend(toggle);
+    }
+
+    toggle.addEventListener("click", () => {
+      const isOpen = navLinks.classList.toggle("show");
+
+      toggle.setAttribute("aria-expanded", String(isOpen));
+      toggle.innerHTML = isOpen ? "×" : "☰";
+    });
+
+    navLinks.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => {
+        navLinks.classList.remove("show");
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.innerHTML = "☰";
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!nav || nav.contains(event.target)) {
+        return;
+      }
+
+      navLinks.classList.remove("show");
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.innerHTML = "☰";
+    });
   }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const query = input.value.trim();
-    if (!query) return;
+  /*
+   * 3. RFQ tray
+   *
+   * Uses an existing .rfq-tray if one is already present.
+   * Otherwise, creates one dynamically.
+   */
+  function initRFQTray() {
+    let tray = document.querySelector(".rfq-tray");
 
-    appendChatBubble(query, 'user');
-    conversationHistory.push({ role: 'user', content: query });
-    input.value = '';
+    if (!tray) {
+      tray = document.createElement("aside");
+      tray.className = "rfq-tray";
+      tray.setAttribute("aria-label", "RFQ inquiry tray");
+      tray.innerHTML = `
+        <strong class="rfq-count">0</strong>
+        <span>Inquiry Tray</span>
+        <a href="#rfq" class="btn btn-gold" style="padding:8px 16px">
+          Review RFQ
+        </a>
+      `;
 
-    const assistantBubble = appendChatBubble('Consulting trade desk...', 'bot');
+      document.body.appendChild(tray);
+    }
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: conversationHistory.slice(-20)
+    const countElement = tray.querySelector(".rfq-count");
+
+    const updateTray = (event) => {
+      const rawCount =
+        event && event.detail !== undefined
+          ? event.detail
+          : 0;
+
+      const count =
+        typeof rawCount === "object"
+          ? Number(rawCount.count || 0)
+          : Number(rawCount);
+
+      const safeCount = Number.isFinite(count)
+        ? Math.max(0, count)
+        : 0;
+
+      if (countElement) {
+        countElement.textContent = String(safeCount);
+      }
+
+      const visible = safeCount > 0;
+
+      tray.hidden = false;
+      tray.classList.toggle("visible", visible);
+      tray.setAttribute("aria-hidden", String(!visible));
+    };
+
+    window.addEventListener("updateRFQCount", updateTray);
+
+    /*
+     * Allows other scripts to update the tray with:
+     * window.dispatchEvent(
+     *   new CustomEvent("updateRFQCount", { detail: 3 })
+     * );
+     */
+    window.updateRFQTray = (count) => {
+      window.dispatchEvent(
+        new CustomEvent("updateRFQCount", {
+          detail: count
         })
+      );
+    };
+
+    updateTray({ detail: 0 });
+  }
+
+  /*
+   * 4. Mobile gyroscope tilt
+   *
+   * iOS requires permission to be requested from a user gesture.
+   * The first touch attempts to activate orientation tracking.
+   */
+  function initDeviceOrientation() {
+    if (prefersReducedMotion || !isTouchDevice) {
+      return;
+    }
+
+    const cards = document.querySelectorAll(".card, .lux-card");
+
+    if (!cards.length || !("DeviceOrientationEvent" in window)) {
+      return;
+    }
+
+    let orientationEnabled = false;
+
+    const applyOrientation = (event) => {
+      if (!orientationEnabled) {
+        return;
+      }
+
+      const gamma = Number(event.gamma) || 0;
+      const beta = Number(event.beta) || 0;
+
+      const rotateY = Math.max(-5, Math.min(5, gamma / 6));
+      const rotateX = Math.max(-5, Math.min(5, (beta - 45) / 9));
+
+      cards.forEach((card) => {
+        card.style.setProperty("--rx", `${-rotateX}deg`);
+        card.style.setProperty("--ry", `${rotateY}deg`);
       });
+    };
 
-      if (!response.ok || !response.body) throw new Error('API unavailable');
+    const enableOrientation = async () => {
+      try {
+        if (
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
+          const permission =
+            await DeviceOrientationEvent.requestPermission();
 
-      assistantBubble.textContent = '';
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let streamText = '';
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const raw = line.replace('data: ', '').trim();
-            if (raw === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(raw);
-              if (parsed.token) {
-                streamText += parsed.token;
-                assistantBubble.textContent = streamText;
-                messagesBox.scrollTop = messagesBox.scrollHeight;
-              }
-            } catch (_) {}
+          if (permission !== "granted") {
+            return;
           }
         }
+
+        orientationEnabled = true;
+        window.addEventListener(
+          "deviceorientation",
+          applyOrientation,
+          { passive: true }
+        );
+      } catch (error) {
+        // Orientation is optional; fail silently.
       }
+    };
 
-      conversationHistory.push({ role: 'assistant', content: streamText });
-    } catch (_) {
-      // Local Intelligent Trade Desk Fallback when running without OpenAI keys
-      const q = query.toLowerCase();
-      let fallbackText = '';
-
-      if (q.includes('isabgol') || q.includes('psyllium')) {
-        fallbackText = 'TRIDEVA EXPORTS supplies Isabgol (Psyllium Husk & Powder) sourced from Rajasthan and Gujarat belts. Export packaging is available in multi-wall paper bags or PP bags with containerized dispatch via Mundra Port.';
-      } else if (q.includes('fenugreek') || q.includes('methi')) {
-        fallbackText = 'We supply machine-cleaned Indian Fenugreek Seeds. Specific purity grades, moisture thresholds, and packaging (25/50 KG) are confirmed per export contract.';
-      } else if (q.includes('millet') || q.includes('bajra')) {
-        fallbackText = 'Indian Millets (Pearl/Sorghum) are sourced directly from Rajasthan agricultural regions for commercial food ingredient and wholesale trade.';
-      } else if (q.includes('port') || q.includes('loading')) {
-        fallbackText = 'Our primary western gateway sea port is Mundra Port (Gujarat), providing direct container liner connectivity to the Middle East, Europe, and Southeast Asia.';
-      } else {
-        fallbackText = 'Namaste. For firm quotations on Isabgol, Fenugreek, Millets, or Pulses, please enter your required volume in the RFQ builder or reach us directly at info@tridevaglobalexporter.com or +91 8233036995.';
-      }
-
-      assistantBubble.textContent = fallbackText;
-      conversationHistory.push({ role: 'assistant', content: fallbackText });
-      messagesBox.scrollTop = messagesBox.scrollHeight;
-    }
-  });
+    window.addEventListener("touchstart", enableOrientation, {
+      once: true,
+      passive: true
+    });
+  }
 })();
