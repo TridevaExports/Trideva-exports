@@ -370,3 +370,160 @@
     );
   }
 })();
+/* ==========================================================================
+   TRIDEVA SPATIAL MOTION ENGINE
+   Adds controlled 3D movement without touching RFQ or globe logic
+   ========================================================================== */
+
+(function () {
+  "use strict";
+
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (reducedMotion) {
+    return;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeSpatialCards();
+    initializeRevealEffects();
+  });
+
+  function initializeSpatialCards() {
+    const elements = document.querySelectorAll(
+      ".card, .lux-card, .stat, .matrix-col, .trade-step, .pipeline-step, .process-step, .step, .rfq-form"
+    );
+
+    elements.forEach((element) => {
+      if (element.dataset.spatialReady === "true") {
+        return;
+      }
+
+      element.dataset.spatialReady = "true";
+
+      let frame;
+
+      function resetElement() {
+        element.style.setProperty(
+          "--spatial-x",
+          "0deg"
+        );
+
+        element.style.setProperty(
+          "--spatial-y",
+          "0deg"
+        );
+
+        element.style.transform = "";
+      }
+
+      function moveElement(event) {
+        if (
+          event.pointerType &&
+          event.pointerType !== "mouse"
+        ) {
+          return;
+        }
+
+        const rect =
+          element.getBoundingClientRect();
+
+        const x =
+          event.clientX - rect.left;
+
+        const y =
+          event.clientY - rect.top;
+
+        const normalizedX =
+          x / rect.width - 0.5;
+
+        const normalizedY =
+          y / rect.height - 0.5;
+
+        const intensity =
+          element.classList.contains("rfq-form")
+            ? 2.4
+            : 4.5;
+
+        const rotateX =
+          normalizedY * -intensity;
+
+        const rotateY =
+          normalizedX * intensity;
+
+        cancelAnimationFrame(frame);
+
+        frame = requestAnimationFrame(() => {
+          element.style.transform =
+            `perspective(1200px)
+             rotateX(${rotateX.toFixed(2)}deg)
+             rotateY(${rotateY.toFixed(2)}deg)
+             translateZ(0)`;
+        });
+      }
+
+      element.addEventListener(
+        "pointermove",
+        moveElement,
+        { passive: true }
+      );
+
+      element.addEventListener(
+        "pointerleave",
+        resetElement
+      );
+
+      element.addEventListener(
+        "pointercancel",
+        resetElement
+      );
+    });
+  }
+
+  function initializeRevealEffects() {
+    const elements = document.querySelectorAll(
+      ".card, .lux-card, .rfq-form, .matrix, .matrix-col, .stat, .trade-step, .pipeline-step, .process-step, .step"
+    );
+
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
+
+    elements.forEach((element) => {
+      element.style.opacity = "0";
+      element.style.transform += " translateY(18px)";
+      element.style.transition =
+        "opacity .75s ease, transform .75s cubic-bezier(.16,1,.3,1)";
+    });
+
+    const observer = new IntersectionObserver(
+      (entries, observerInstance) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          const element = entry.target;
+
+          element.style.opacity = "1";
+          element.style.transform =
+            element.style.transform.replace(
+              " translateY(18px)",
+              ""
+            );
+
+          observerInstance.unobserve(element);
+        });
+      },
+      {
+        threshold: 0.12
+      }
+    );
+
+    elements.forEach((element) => {
+      observer.observe(element);
+    });
+  }
+})();
