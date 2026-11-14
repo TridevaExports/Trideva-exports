@@ -314,6 +314,17 @@
        */
 
       console.log("RFQ submission:", data);
+
+const emailSubject = encodeURIComponent(
+  "New RFQ Request - TRIDEVA EXPORTS"
+);
+
+const emailBody = encodeURIComponent(
+  createWhatsAppMessage(data)
+);
+
+window.location.href =
+  `mailto:info@tridevaglobalexporter.com?subject=${emailSubject}&body=${emailBody}`;
     });
 
     updateWhatsAppLink();
