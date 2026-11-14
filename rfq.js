@@ -1,432 +1,154 @@
-/**
- * TRIDEVA EXPORTS
- * Commercial RFQ Builder and WhatsApp Linker
- */
+/* =========================================================
+   TRIDEVA EXPORTS
+   rfq.js
+   ========================================================= */
 
-(function () {
+(() => {
   "use strict";
 
-  /*
-   * Stores selected products.
-   * A Set automatically prevents duplicate products.
-   */
-  const selectedProducts = new Set();
+  const rfqForm = document.getElementById("rfqForm");
+  const submitButton = document.getElementById("submitBtn");
+  const whatsappLink = document.getElementById("whatsappLink");
+  const formStatus = document.getElementById("formStatus");
 
-  const summaryContainer =
-    document.getElementById("summaryList");
-
-  const whatsappBtn =
-    document.getElementById("whatsappLink");
-
-  const rfqForm =
-    document.getElementById("rfqForm");
-
-  const noticeEl =
-    document.getElementById("notice");
-
-  const destinationInput =
-    document.getElementById("destination");
-
-  const quantityInput =
-    document.getElementById("quantity");
-
-  const incotermInput =
-    document.getElementById("incoterm");
-
-  const messageInput =
-    document.getElementById("message");
-
-  const WHATSAPP_PHONE = "918233036995";
-
-  /*
-   * Prevent product names from inserting unwanted HTML
-   * into the RFQ summary.
-   */
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  if (!rfqForm) {
+    return;
   }
 
-  /*
-   * Updates:
-   * - The RFQ summary
-   * - The WhatsApp message
-   * - The floating RFQ tray count
-   */
-  function updateQuotationTray() {
-    /*
-     * Tell app.js how many products are selected.
-     * This controls the floating RFQ tray.
-     */
-    window.dispatchEvent(
-      new CustomEvent("updateRFQCount", {
-        detail: selectedProducts.size
-      })
-    );
+  const whatsappNumber = "919982755536";
+  const businessEmail = "info@tridevaglobalexporter.com";
 
-    /*
-     * Update the RFQ summary inside the form.
-     */
-    if (summaryContainer) {
-      if (selectedProducts.size === 0) {
-        summaryContainer.innerHTML =
-          '<span style="color:var(--muted)">No commodities selected yet. Click "Add to RFQ +" above.</span>';
-      } else {
-        summaryContainer.innerHTML =
-          Array.from(selectedProducts)
-            .map((product) => {
-              const safeProduct =
-                escapeHtml(product);
+  function getFormData() {
+    const formData = new FormData(rfqForm);
 
-              return `
-                <div
-                  class="summary-item"
-                  style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    padding:8px 0;
-                    border-bottom:1px dashed var(--line);
-                  "
-                >
-                  <span>
-                    ✦ <strong>${safeProduct}</strong>
-                  </span>
+    return {
+      fullName: String(formData.get("fullName") || "").trim(),
+      company: String(formData.get("company") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      phone: String(formData.get("phone") || "").trim(),
+      origin: String(formData.get("origin") || "").trim(),
+      destination: String(formData.get("destination") || "").trim(),
+      cargoType: String(formData.get("cargoType") || "").trim(),
+      quantity: String(formData.get("quantity") || "").trim(),
+      cargoDetails: String(
+        formData.get("cargoDetails") || ""
+      ).trim(),
+      additionalNotes: String(
+        formData.get("additionalNotes") || ""
+      ).trim()
+    };
+  }
 
-                  <button
-                    type="button"
-                    data-product-remove="${safeProduct}"
-                    aria-label="Remove ${safeProduct}"
-                    style="
-                      background:none;
-                      border:none;
-                      color:#ff8d8d;
-                      cursor:pointer;
-                      font-size:16px;
-                    "
-                  >
-                    &times;
-                  </button>
-                </div>
-              `;
-            })
-            .join("");
-      }
+  function createRequestMessage(data) {
+    return [
+      "TRIDEVA EXPORTS - RFQ REQUEST",
+      "",
+      `Name: ${data.fullName}`,
+      `Company: ${data.company}`,
+      `Email: ${data.email}`,
+      `Phone / WhatsApp: ${data.phone}`,
+      "",
+      `Origin: ${data.origin}`,
+      `Destination: ${data.destination}`,
+      `Cargo Type: ${data.cargoType}`,
+      `Quantity / Volume: ${data.quantity}`,
+      "",
+      `Cargo Details: ${data.cargoDetails}`,
+      "",
+      `Additional Notes: ${
+        data.additionalNotes || "None"
+      }`
+    ].join("\n");
+  }
+
+  function updateWhatsAppLink() {
+    if (!whatsappLink) {
+      return;
     }
 
-    /*
-     * Prepare the WhatsApp message.
-     */
-    const productsText =
-      selectedProducts.size > 0
-        ? Array.from(selectedProducts).join(", ")
-        : "To be confirmed";
+    const data = getFormData();
+    const message = createRequestMessage(data);
 
-    const destination =
-      destinationInput?.value.trim() ||
-      "To be advised";
+    whatsappLink.href =
+      `https://wa.me/${whatsappNumber}?text=${
+        encodeURIComponent(message)
+      }`;
+  }
 
-    const quantity =
-      quantityInput?.value.trim() ||
-      "To be advised";
-
-    const incoterm =
-      incotermInput?.value ||
-      "FOB / CIF";
-
-    const notes =
-      messageInput?.value.trim() ||
-      "Standard packaging";
-
-    const rawMessage =
-      `*EXPORT INQUIRY - TRIDEVA EXPORTS*\n\n` +
-      `*Commodities:* ${productsText}\n` +
-      `*Destination Port:* ${destination}\n` +
-      `*Estimated Volume:* ${quantity}\n` +
-      `*Preferred Incoterm:* ${incoterm}\n` +
-      `*Specifications / Notes:* ${notes}\n\n` +
-      `Please provide formal proforma quotation and delivery schedule.`;
-
-    /*
-     * Update WhatsApp link.
-     */
-    if (whatsappBtn) {
-      whatsappBtn.href =
-        `https://wa.me/${WHATSAPP_PHONE}?text=` +
-        encodeURIComponent(rawMessage);
+  function showStatus(message, color = "var(--text-muted)") {
+    if (!formStatus) {
+      return;
     }
+
+    formStatus.textContent = message;
+    formStatus.style.color = color;
   }
 
-  /*
-   * Add product buttons.
-   *
-   * Each product card should look like:
-   *
-   * <article data-product="Cardamom">
-   *   <button class="add-rfq">
-   *     Add to RFQ +
-   *   </button>
-   * </article>
-   */
-  document.querySelectorAll(".add-rfq")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        const card =
-          button.closest("[data-product]");
+  rfqForm.addEventListener("input", updateWhatsAppLink);
+  rfqForm.addEventListener("change", updateWhatsAppLink);
 
-        const product =
-          card?.dataset.product;
+  rfqForm.addEventListener("submit", (event) => {
+    event.preventDefault();
 
-        if (!product) {
-          return;
-        }
+    if (!rfqForm.checkValidity()) {
+      rfqForm.reportValidity();
 
-        if (selectedProducts.has(product)) {
-          selectedProducts.delete(product);
-          button.textContent = "Add to RFQ +";
-        } else {
-          selectedProducts.add(product);
-          button.textContent = "Added ✓";
-        }
+      showStatus(
+        "Please complete all required fields.",
+        "var(--red)"
+      );
 
-        updateQuotationTray();
-      });
-    });
+      return;
+    }
 
-  /*
-   * Remove products from the RFQ summary.
-   */
-  if (summaryContainer) {
-    summaryContainer.addEventListener(
-      "click",
-      (event) => {
-        const removeButton =
-          event.target.closest(
-            "button[data-product-remove]"
-          );
+    const data = getFormData();
+    const message = createRequestMessage(data);
 
-        if (!removeButton) {
-          return;
-        }
-
-        const productToRemove =
-          removeButton.dataset.productRemove;
-
-        if (!productToRemove) {
-          return;
-        }
-
-        selectedProducts.delete(
-          productToRemove
-        );
-
-        /*
-         * Reset matching product buttons.
-         */
-        document.querySelectorAll(".add-rfq")
-          .forEach((button) => {
-            const card =
-              button.closest("[data-product]");
-
-            if (
-              card &&
-              card.dataset.product ===
-                productToRemove
-            ) {
-              button.textContent =
-                "Add to RFQ +";
-            }
-          });
-
-        updateQuotationTray();
-      }
+    const emailSubject = encodeURIComponent(
+      "New RFQ Request - TRIDEVA EXPORTS"
     );
-  }
 
-  /*
-   * Product category filters.
-   *
-   * Supports both:
-   * - .filter
-   * - .filter-btn
-   */
-  document.querySelectorAll(
-    ".filter, .filter-btn"
-  ).forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(
-        ".filter, .filter-btn"
-      ).forEach((item) => {
-        item.classList.remove("active");
-      });
+    const emailBody = encodeURIComponent(message);
 
-      tab.classList.add("active");
+    const emailLink =
+      `mailto:${businessEmail}` +
+      `?subject=${emailSubject}` +
+      `&body=${emailBody}`;
 
-      const filterType =
-        tab.dataset.filter || "all";
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Request Prepared";
+    }
 
-      document.querySelectorAll(".card")
-        .forEach((card) => {
-          const matches =
-            filterType === "all" ||
-            card.dataset.category ===
-              filterType;
+    showStatus(
+      "Your RFQ is ready. Your email application will now open.",
+      "var(--green)"
+    );
 
-          card.style.display =
-            matches ? "flex" : "none";
-        });
-    });
+    updateWhatsAppLink();
+
+    window.location.href = emailLink;
   });
 
-  /*
-   * Update WhatsApp message while the user types.
-   */
-  [
-    destinationInput,
-    quantityInput,
-    incotermInput,
-    messageInput
-  ]
-    .filter(Boolean)
-    .forEach((field) => {
-      field.addEventListener(
-        "input",
-        updateQuotationTray
-      );
-
-      field.addEventListener(
-        "change",
-        updateQuotationTray
-      );
-    });
-
-  /*
-   * Submit RFQ form.
-   */
-  if (rfqForm) {
-    rfqForm.addEventListener(
-      "submit",
-      async (event) => {
+  if (whatsappLink) {
+    whatsappLink.addEventListener("click", (event) => {
+      if (!rfqForm.checkValidity()) {
         event.preventDefault();
 
-        updateQuotationTray();
+        rfqForm.reportValidity();
 
-        const payload = {
-          name:
-            document.getElementById("name")
-              ?.value || "",
+        showStatus(
+          "Please complete the required fields before using WhatsApp.",
+          "var(--gold)"
+        );
 
-          company:
-            document.getElementById("company")
-              ?.value || "",
-
-          email:
-            document.getElementById("email")
-              ?.value || "",
-
-          destination:
-            destinationInput?.value || "",
-
-          quantity:
-            quantityInput?.value || "",
-
-          incoterm:
-            incotermInput?.value || "",
-
-          products:
-            Array.from(selectedProducts),
-
-          message:
-            messageInput?.value || ""
-        };
-
-        if (noticeEl) {
-          noticeEl.textContent =
-            "Inquiry prepared. Opening WhatsApp to connect with TRIDEVA Trade Desk...";
-
-          noticeEl.classList.add("show");
-        }
-
-        /*
-         * Optional API request.
-         * If the API does not exist, the website still works.
-         */
-        try {
-          await fetch("/api/whatsapp-send", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-          });
-        } catch (error) {
-          /*
-           * Ignore API errors because WhatsApp
-           * remains the primary submission method.
-           */
-        }
-
-        /*
-         * Open WhatsApp with the prepared message.
-         */
-        if (
-          whatsappBtn &&
-          whatsappBtn.href
-        ) {
-          window.open(
-            whatsappBtn.href,
-            "_blank",
-            "noopener,noreferrer"
-          );
-        }
-      }
-    );
-  }
-
-  /*
-   * Allows other parts of the website to select
-   * a product programmatically.
-   */
-  window.selectCommodityForRFQ =
-    function (productName) {
-      if (!productName) {
         return;
       }
 
-      selectedProducts.add(productName);
+      updateWhatsAppLink();
+    });
+  }
 
-      document.querySelectorAll(".add-rfq")
-        .forEach((button) => {
-          const card =
-            button.closest("[data-product]");
+  updateWhatsAppLink();
 
-          if (
-            card &&
-            card.dataset.product ===
-              productName
-          ) {
-            button.textContent = "Added ✓";
-          }
-        });
-
-      updateQuotationTray();
-
-      const rfqSection =
-        document.getElementById("rfq");
-
-      if (rfqSection) {
-        rfqSection.scrollIntoView({
-          behavior: "smooth"
-        });
-      }
-    };
-
-  /*
-   * Start with an empty RFQ.
-   */
-  updateQuotationTray();
 })();
