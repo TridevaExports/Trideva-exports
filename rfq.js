@@ -1,154 +1,224 @@
-/* =========================================================
-   TRIDEVA EXPORTS
-   rfq.js
-   ========================================================= */
+/**
+ * TRIDEVA EXPORTS — COMMERCIAL RFQ ENGINE & DIGITAL TRADE MANIFEST
+ * Product Selection, Dynamic Category Filtering, Real-time WhatsApp Linker
+ */
 
-(() => {
-  "use strict";
+(function () {
+  'use strict';
 
-  const rfqForm = document.getElementById("rfqForm");
-  const submitButton = document.getElementById("submitBtn");
-  const whatsappLink = document.getElementById("whatsappLink");
-  const formStatus = document.getElementById("formStatus");
+  const selectedProducts = new Set();
 
-  if (!rfqForm) {
-    return;
+  const summaryContainer = document.getElementById('summaryList');
+  const manifestCountEl = document.getElementById('manifestCount');
+  const whatsappBtn = document.getElementById('whatsappLink');
+  const rfqForm = document.getElementById('rfqForm');
+  const noticeEl = document.getElementById('notice');
+
+  const destinationInput = document.getElementById('destination');
+  const quantityInput = document.getElementById('quantity');
+  const incotermInput = document.getElementById('incoterm');
+  const messageInput = document.getElementById('message');
+
+  const WHATSAPP_PHONE = '918233036995';
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
-  const whatsappNumber = "919982755536";
-  const businessEmail = "info@tridevaglobalexporter.com";
+  /* ==========================================================================
+     UPDATE QUOTATION TRAY & MANIFEST
+     ========================================================================== */
+  function updateManifestTray() {
+    const count = selectedProducts.size;
 
-  function getFormData() {
-    const formData = new FormData(rfqForm);
-
-    return {
-      fullName: String(formData.get("fullName") || "").trim(),
-      company: String(formData.get("company") || "").trim(),
-      email: String(formData.get("email") || "").trim(),
-      phone: String(formData.get("phone") || "").trim(),
-      origin: String(formData.get("origin") || "").trim(),
-      destination: String(formData.get("destination") || "").trim(),
-      cargoType: String(formData.get("cargoType") || "").trim(),
-      quantity: String(formData.get("quantity") || "").trim(),
-      cargoDetails: String(
-        formData.get("cargoDetails") || ""
-      ).trim(),
-      additionalNotes: String(
-        formData.get("additionalNotes") || ""
-      ).trim()
-    };
-  }
-
-  function createRequestMessage(data) {
-    return [
-      "TRIDEVA EXPORTS - RFQ REQUEST",
-      "",
-      `Name: ${data.fullName}`,
-      `Company: ${data.company}`,
-      `Email: ${data.email}`,
-      `Phone / WhatsApp: ${data.phone}`,
-      "",
-      `Origin: ${data.origin}`,
-      `Destination: ${data.destination}`,
-      `Cargo Type: ${data.cargoType}`,
-      `Quantity / Volume: ${data.quantity}`,
-      "",
-      `Cargo Details: ${data.cargoDetails}`,
-      "",
-      `Additional Notes: ${
-        data.additionalNotes || "None"
-      }`
-    ].join("\n");
-  }
-
-  function updateWhatsAppLink() {
-    if (!whatsappLink) {
-      return;
+    // Update manifest counter badge
+    if (manifestCountEl) {
+      manifestCountEl.textContent = String(count);
     }
 
-    const data = getFormData();
-    const message = createRequestMessage(data);
+    // Update the manifest list inside the left console
+    if (summaryContainer) {
+      if (count === 0) {
+        summaryContainer.innerHTML = '<span class="summary-empty">No commodities selected yet. Click "Add to manifest +" above.</span>';
+      } else {
+        summaryContainer.innerHTML = Array.from(selectedProducts)
+          .map((prod) => {
+            const safe = escapeHtml(prod);
+            return `
+              <div class="summary-item">
+                <span>✦ <strong>${safe}</strong></span>
+                <button type="button" data-remove="${safe}" aria-label="Remove ${safe}">&times;</button>
+              </div>
+            `;
+          })
+          .join('');
+      }
+    }
 
-    whatsappLink.href =
-      `https://wa.me/${whatsappNumber}?text=${
-        encodeURIComponent(message)
-      }`;
+    // Compose formatted commercial WhatsApp dispatch message
+    const productsText = count > 0 ? Array.from(selectedProducts).join(', ') : 'To be confirmed';
+    const dest = destinationInput?.value.trim() || 'To be advised';
+    const qty = quantityInput?.value.trim() || 'To be advised';
+    const incoterm = incotermInput?.value || 'FOB (Mundra)';
+    const notes = messageInput?.value.trim() || 'Standard export packaging requested';
+
+    const rawMessage =
+      `*COMMERCIAL INQUIRY — TRIDEVA EXPORTS*\n` +
+      `──────────────────────────\n` +
+      `*Selected Commodities:* ${productsText}\n` +
+      `*Discharge Port:* ${dest}\n` +
+      `*Estimated Volume:* ${qty}\n` +
+      `*Preferred Incoterm:* ${incoterm}\n` +
+      `*Packaging & Specifications:* ${notes}\n` +
+      `──────────────────────────\n` +
+      `Please provide formal proforma quotation and dispatch timeline.`;
+
+    if (whatsappBtn) {
+      whatsappBtn.href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(rawMessage)}`;
+    }
   }
 
-  function showStatus(message, color = "var(--text-muted)") {
-    if (!formStatus) {
-      return;
-    }
+  /* ==========================================================================
+     HANDLE "ADD TO MANIFEST" BUTTONS
+     ========================================================================== */
+  document.querySelectorAll('.add-rfq').forEach((button) => {
+    button.addEventListener('click', () => {
+      const card = button.closest('[data-product]');
+      const product = card?.dataset.product;
+      if (!product) return;
 
-    formStatus.textContent = message;
-    formStatus.style.color = color;
-  }
-
-  rfqForm.addEventListener("input", updateWhatsAppLink);
-  rfqForm.addEventListener("change", updateWhatsAppLink);
-
-  rfqForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    if (!rfqForm.checkValidity()) {
-      rfqForm.reportValidity();
-
-      showStatus(
-        "Please complete all required fields.",
-        "var(--red)"
-      );
-
-      return;
-    }
-
-    const data = getFormData();
-    const message = createRequestMessage(data);
-
-    const emailSubject = encodeURIComponent(
-      "New RFQ Request - TRIDEVA EXPORTS"
-    );
-
-    const emailBody = encodeURIComponent(message);
-
-    const emailLink =
-      `mailto:${businessEmail}` +
-      `?subject=${emailSubject}` +
-      `&body=${emailBody}`;
-
-    if (submitButton) {
-      submitButton.disabled = true;
-      submitButton.textContent = "Request Prepared";
-    }
-
-    showStatus(
-      "Your RFQ is ready. Your email application will now open.",
-      "var(--green)"
-    );
-
-    updateWhatsAppLink();
-
-    window.location.href = emailLink;
-  });
-
-  if (whatsappLink) {
-    whatsappLink.addEventListener("click", (event) => {
-      if (!rfqForm.checkValidity()) {
-        event.preventDefault();
-
-        rfqForm.reportValidity();
-
-        showStatus(
-          "Please complete the required fields before using WhatsApp.",
-          "var(--gold)"
-        );
-
-        return;
+      if (selectedProducts.has(product)) {
+        selectedProducts.delete(product);
+        button.innerHTML = 'Add to manifest <span>+</span>';
+        button.classList.remove('btn-gold');
+        button.classList.add('btn-outline');
+      } else {
+        selectedProducts.add(product);
+        button.innerHTML = 'Added to manifest <span>✓</span>';
+        button.classList.remove('btn-outline');
+        button.classList.add('btn-gold');
       }
 
-      updateWhatsAppLink();
+      updateManifestTray();
+    });
+  });
+
+  /* ==========================================================================
+     HANDLE REMOVE ITEM FROM MANIFEST CONSOLE
+     ========================================================================== */
+  if (summaryContainer) {
+    summaryContainer.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('button[data-remove]');
+      if (!removeBtn) return;
+
+      const product = removeBtn.dataset.remove;
+      if (!product) return;
+
+      selectedProducts.delete(product);
+
+      // Reset corresponding card button label
+      document.querySelectorAll(`[data-product="${product}"] .add-rfq`).forEach((btn) => {
+        btn.innerHTML = 'Add to manifest <span>+</span>';
+        btn.classList.remove('btn-gold');
+        btn.classList.add('btn-outline');
+      });
+
+      updateManifestTray();
     });
   }
 
-  updateWhatsAppLink();
+  /* ==========================================================================
+     PRODUCT CATEGORY FILTERS
+     ========================================================================== */
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  filterButtons.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      filterButtons.forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
 
+      const filterType = tab.dataset.filter || 'all';
+
+      document.querySelectorAll('.commodity-card').forEach((card) => {
+        const matches = filterType === 'all' || card.dataset.category === filterType;
+        card.style.display = matches ? 'flex' : 'none';
+      });
+    });
+  });
+
+  /* ==========================================================================
+     REAL-TIME FIELD INPUT LISTENERS
+     ========================================================================== */
+  [destinationInput, quantityInput, incotermInput, messageInput].filter(Boolean).forEach((input) => {
+    input.addEventListener('input', updateManifestTray);
+    input.addEventListener('change', updateManifestTray);
+  });
+
+  /* ==========================================================================
+     FORM SUBMIT DISPATCH
+     ========================================================================== */
+  if (rfqForm) {
+    rfqForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      updateManifestTray();
+
+      const payload = {
+        name: document.getElementById('name')?.value || '',
+        company: document.getElementById('company')?.value || '',
+        email: document.getElementById('email')?.value || '',
+        destination: destinationInput?.value || '',
+        quantity: quantityInput?.value || '',
+        incoterm: incotermInput?.value || '',
+        products: Array.from(selectedProducts),
+        message: messageInput?.value || ''
+      };
+
+      if (noticeEl) {
+        noticeEl.textContent = 'Inquiry prepared. Opening WhatsApp to connect with TRIDEVA Trade Desk...';
+        noticeEl.classList.add('show');
+      }
+
+      // Optional async ping to Cloud API endpoint
+      try {
+        fetch('/api/whatsapp-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (_) {}
+
+      // Direct WhatsApp dispatch
+      if (whatsappBtn?.href) {
+        window.open(whatsappBtn.href, '_blank', 'noopener,noreferrer');
+      }
+    });
+  }
+
+  /* ==========================================================================
+     GLOBAL HELPER TO SELECT COMMODITY PROGRAMMATICALLY
+     ========================================================================== */
+  window.selectCommodityForRFQ = function (productName) {
+    if (!productName) return;
+    selectedProducts.add(productName);
+
+    document.querySelectorAll(`[data-product="${productName}"] .add-rfq`).forEach((btn) => {
+      btn.innerHTML = 'Added to manifest <span>✓</span>';
+      btn.classList.remove('btn-outline');
+      btn.classList.add('btn-gold');
+    });
+
+    updateManifestTray();
+
+    const rfqSec = document.getElementById('rfq');
+    if (rfqSec) {
+      rfqSec.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Initial render
+  updateManifestTray();
 })();
