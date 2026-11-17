@@ -1,431 +1,231 @@
-/* =========================================================
-   DIGITAL MARITIME MANIFEST
-   app.js
-   ========================================================= */
+/**
+ * TRIDEVA EXPORTS — MASTER 3D SPATIAL INTERACTION ENGINE
+ * Hardware-accelerated 3D Card Physics, Specular Glare,
+ * Mobile Gyroscope Tilt & AI Trade Desk Console
+ */
 
-(() => {
-  "use strict";
+(function () {
+  'use strict';
 
-  /* -------------------------
-     Global Helpers
-  -------------------------- */
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-  const $ = (selector, parent = document) =>
-    parent.querySelector(selector);
+  document.addEventListener('DOMContentLoaded', initApp);
 
-  const $$ = (selector, parent = document) =>
-    Array.from(parent.querySelectorAll(selector));
-
-  /* -------------------------
-     Current Year
-  -------------------------- */
-
-  const currentYear = $("#currentYear");
-
-  if (currentYear) {
-    currentYear.textContent = new Date().getFullYear();
+  function initApp() {
+    init3DCardPhysics();
+    initMobileGyroscope();
+    initAIAssistant();
+    initDynamicYear();
+    initSmoothNavigation();
   }
 
-  /* -------------------------
-     Scroll Reveal
-  -------------------------- */
+  /* ==========================================================================
+     1. HARDWARE-ACCELERATED 3D CARD TILT & SPECULAR GLARE
+     ========================================================================== */
+  function init3DCardPhysics() {
+    const cards = document.querySelectorAll('.commodity-card, .trade-node, .metric-node');
+    if (!cards.length || prefersReducedMotion) return;
 
-  const revealElements = $$("[data-reveal]");
+    cards.forEach((card) => {
+      let animFrame = null;
 
-  if ("IntersectionObserver" in window) {
-    const revealObserver = new IntersectionObserver(
-      (entries, observer) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) {
-            return;
-          }
+      const resetCard = () => {
+        card.style.setProperty('--rx', '0deg');
+        card.style.setProperty('--ry', '0deg');
+        card.style.setProperty('--mouse-x', '50%');
+        card.style.setProperty('--mouse-y', '50%');
+      };
 
-          entry.target.classList.add("revealed");
-          observer.unobserve(entry.target);
+      const handleMove = (e) => {
+        // Gyroscope handles touch devices separately
+        if (isTouchDevice && e.pointerType !== 'mouse') return;
+
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const percentX = Math.max(0, Math.min(1, x / rect.width));
+        const percentY = Math.max(0, Math.min(1, y / rect.height));
+
+        // Refined tilt angles (6 degrees max for elegant luxury feel)
+        const maxTilt = 6.5;
+        const rotateY = (percentX - 0.5) * maxTilt * 2;
+        const rotateX = (0.5 - percentY) * maxTilt * 2;
+
+        if (animFrame) cancelAnimationFrame(animFrame);
+
+        animFrame = requestAnimationFrame(() => {
+          card.style.setProperty('--rx', `${rotateX.toFixed(2)}deg`);
+          card.style.setProperty('--ry', `${rotateY.toFixed(2)}deg`);
+          card.style.setProperty('--mouse-x', `${x}px`);
+          card.style.setProperty('--mouse-y', `${y}px`);
         });
-      },
-      {
-        threshold: 0.12,
-        rootMargin: "0px 0px -40px 0px"
-      }
-    );
+      };
 
-    revealElements.forEach((element) => {
-      revealObserver.observe(element);
-    });
-  } else {
-    revealElements.forEach((element) => {
-      element.classList.add("revealed");
+      card.addEventListener('pointermove', handleMove, { passive: true });
+      card.addEventListener('pointerleave', resetCard);
+      card.addEventListener('pointercancel', resetCard);
     });
   }
 
-  /* -------------------------
-     Active Navigation
-  -------------------------- */
+  /* ==========================================================================
+     2. SMARTPHONE GYROSCOPE PHYSICAL TILT
+     ========================================================================== */
+  function initMobileGyroscope() {
+    if (prefersReducedMotion || !isTouchDevice || !('DeviceOrientationEvent' in window)) return;
 
-  const navigationLinks = $$(".nav-links a");
-  const navigatedSections = $$("main section[id]");
+    const cards = document.querySelectorAll('.commodity-card');
+    if (!cards.length) return;
 
-  function updateActiveNavigation() {
-    const scrollPosition = window.scrollY + 180;
-    let activeSection = "";
+    let gyroActive = false;
 
-    navigatedSections.forEach((section) => {
-      if (scrollPosition >= section.offsetTop) {
-        activeSection = section.id;
-      }
-    });
+    const handleOrientation = (e) => {
+      if (!gyroActive) return;
 
-    navigationLinks.forEach((link) => {
-      const href = link.getAttribute("href");
-      link.classList.toggle(
-        "active",
-        href === `#${activeSection}`
-      );
-    });
-  }
+      const gamma = Number(e.gamma) || 0; // Left to right [-90, 90]
+      const beta = Number(e.beta) || 0;   // Front to back [-180, 180]
 
-  window.addEventListener(
-    "scroll",
-    updateActiveNavigation,
-    { passive: true }
-  );
+      // Subtle reactive tilt as user tilts phone
+      const rotY = Math.max(-5, Math.min(5, gamma / 6));
+      const rotX = Math.max(-5, Math.min(5, (beta - 45) / 8));
 
-  updateActiveNavigation();
-
-  /* -------------------------
-     Smooth Anchor Navigation
-  -------------------------- */
-
-  $$('a[href^="#"]').forEach((link) => {
-    link.addEventListener("click", (event) => {
-      const targetId = link.getAttribute("href");
-
-      if (!targetId || targetId === "#") {
-        return;
-      }
-
-      const target = $(targetId);
-
-      if (!target) {
-        return;
-      }
-
-      event.preventDefault();
-
-      target.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
+      cards.forEach((card) => {
+        card.style.setProperty('--rx', `${-rotX.toFixed(2)}deg`);
+        card.style.setProperty('--ry', `${rotY.toFixed(2)}deg`);
       });
-    });
-  });
+    };
 
-  /* -------------------------
-     Unified 3D Tilt Engine
-  -------------------------- */
+    const requestGyroPermission = async () => {
+      try {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const res = await DeviceOrientationEvent.requestPermission();
+          if (res !== 'granted') return;
+        }
+        gyroActive = true;
+        window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+      } catch (_) {
+        // Gyroscope permission denied or unavailable, silent fallback
+      }
+    };
 
-  const tiltElements = $$("[data-tilt]");
-
-  const prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-
-  const supportsTouch =
-    "ontouchstart" in window ||
-    navigator.maxTouchPoints > 0;
-
-  if (!prefersReducedMotion && !supportsTouch) {
-    tiltElements.forEach((element) => {
-      let frameRequested = false;
-
-      element.addEventListener(
-        "pointermove",
-        (event) => {
-          const bounds = element.getBoundingClientRect();
-
-          const pointerX =
-            ((event.clientX - bounds.left) / bounds.width) * 100;
-
-          const pointerY =
-            ((event.clientY - bounds.top) / bounds.height) * 100;
-
-          const normalizedX =
-            ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-
-          const normalizedY =
-            ((event.clientY - bounds.top) / bounds.height) * 2 - 1;
-
-          const rotateX = normalizedY * -5;
-          const rotateY = normalizedX * 7;
-
-          element.style.setProperty(
-            "--pointer-x",
-            `${pointerX}%`
-          );
-
-          element.style.setProperty(
-            "--pointer-y",
-            `${pointerY}%`
-          );
-
-          if (frameRequested) {
-            return;
-          }
-
-          frameRequested = true;
-
-          requestAnimationFrame(() => {
-            element.style.transform = `
-              perspective(1000px)
-              rotateX(${rotateX}deg)
-              rotateY(${rotateY}deg)
-              translateZ(0)
-            `;
-
-            frameRequested = false;
-          });
-        },
-        { passive: true }
-      );
-
-      element.addEventListener("pointerleave", () => {
-        element.style.transform = "";
-        element.style.removeProperty("--pointer-x");
-        element.style.removeProperty("--pointer-y");
-      });
-    });
+    // iOS requires permission request initiated from a user touch gesture
+    window.addEventListener('touchstart', requestGyroPermission, { once: true, passive: true });
   }
 
-  /* -------------------------
-     AI Assistant
-  -------------------------- */
+  /* ==========================================================================
+     3. AI TRADE DESK ASSISTANT HUD
+     ========================================================================== */
+  function initAIAssistant() {
+    const launcher = document.getElementById('aiLauncher');
+    const windowEl = document.getElementById('aiWindow');
+    const closeBtn = document.getElementById('aiClose');
+    const form = document.getElementById('aiForm');
+    const input = document.getElementById('aiInput');
+    const messages = document.getElementById('aiMessages');
 
-  const aiLauncher = $("#aiLauncher");
-  const aiWindow = $("#aiWindow");
-  const aiClose = $("#aiClose");
-  const aiForm = $("#aiForm");
-  const aiInput = $("#aiInput");
-  const aiMessages = $("#aiMessages");
+    if (!launcher || !windowEl || !closeBtn || !form || !input || !messages) return;
 
-  function openAssistant() {
-    if (!aiWindow || !aiLauncher) {
-      return;
-    }
-
-    aiWindow.classList.add("active");
-    aiWindow.setAttribute("aria-hidden", "false");
-    aiLauncher.setAttribute("aria-expanded", "true");
-
-    if (aiInput) {
-      window.setTimeout(() => {
-        aiInput.focus();
-      }, 250);
-    }
-  }
-
-  function closeAssistant() {
-    if (!aiWindow || !aiLauncher) {
-      return;
-    }
-
-    aiWindow.classList.remove("active");
-    aiWindow.setAttribute("aria-hidden", "true");
-    aiLauncher.setAttribute("aria-expanded", "false");
-  }
-
-  function addAssistantMessage(message, type = "assistant") {
-    if (!aiMessages) {
-      return;
-    }
-
-    const messageElement = document.createElement("div");
-
-    messageElement.className =
-      `ai-message${type === "user" ? " user" : ""}`;
-
-    messageElement.textContent = message;
-
-    aiMessages.appendChild(messageElement);
-    aiMessages.scrollTop = aiMessages.scrollHeight;
-  }
-
-  function getAssistantResponse(message) {
-    const normalizedMessage = message.toLowerCase();
-
-    if (
-      normalizedMessage.includes("quote") ||
-      normalizedMessage.includes("rfq") ||
-      normalizedMessage.includes("price")
-    ) {
-      return "To request a quote, complete the Digital Maritime Manifest below with your origin, destination, cargo type, quantity, and shipment requirements.";
-    }
-
-    if (
-      normalizedMessage.includes("cargo") ||
-      normalizedMessage.includes("shipment")
-    ) {
-      return "Please provide the cargo type, volume or quantity, origin, destination, preferred timing, and any special handling requirements.";
-    }
-
-    if (
-      normalizedMessage.includes("route") ||
-      normalizedMessage.includes("shipping")
-    ) {
-      return "Our route intelligence process reviews the origin, destination, cargo profile, timing, and operational constraints before recommending the next movement.";
-    }
-
-    if (
-      normalizedMessage.includes("whatsapp") ||
-      normalizedMessage.includes("contact")
-    ) {
-      return "You can submit the manifest first, then continue the conversation through WhatsApp using the button in the RFQ console.";
-    }
-
-    if (
-      normalizedMessage.includes("hello") ||
-      normalizedMessage.includes("hi") ||
-      normalizedMessage.includes("hey")
-    ) {
-      return "Hello. Tell me whether you need a quote, route guidance, cargo coordination, or help preparing your shipment request.";
-    }
-
-    return "I can help with RFQs, cargo requirements, route planning, freight coordination, and the information needed for your next maritime movement.";
-  }
-
-  if (aiLauncher) {
-    aiLauncher.addEventListener("click", () => {
-      const isOpen =
-        aiWindow && aiWindow.classList.contains("active");
-
+    // Toggle chat window
+    launcher.addEventListener('click', () => {
+      const isOpen = windowEl.classList.toggle('active');
+      launcher.setAttribute('aria-expanded', String(isOpen));
       if (isOpen) {
-        closeAssistant();
-      } else {
-        openAssistant();
+        setTimeout(() => input.focus(), 150);
+      }
+    });
+
+    closeBtn.addEventListener('click', () => {
+      windowEl.classList.remove('active');
+      launcher.setAttribute('aria-expanded', 'false');
+    });
+
+    // Auto-scroll messages to bottom
+    const scrollToBottom = () => {
+      messages.scrollTop = messages.scrollHeight;
+    };
+
+    // Commercial Knowledge Base responses for Trade Inquiries
+    function getTradeResponse(query) {
+      const q = query.toLowerCase();
+      if (q.includes('isabgol') || q.includes('psyllium')) {
+        return "We supply premium Indian Isabgol (Psyllium Husk) in 85%, 95%, and 99% USP purity grades, sourced directly from Rajasthan/Gujarat. We pack in multi-ply paper or PP bags. Would you like a CIF quotation for your destination port?";
+      }
+      if (q.includes('fenugreek') || q.includes('methi')) {
+        return "Our whole Fenugreek Seeds are Machine Cleaned and Sortex Graded (99% pure), with rich aroma and uniform color. Typical export packing is in 25kg or 50kg bags from Mundra Port.";
+      }
+      if (q.includes('millet') || q.includes('bajra') || q.includes('sorghum')) {
+        return "TRIDEVA exports non-GMO Pearl Millet (Bajra) and Sorghum (Jowar) with moisture under 12%, available in 20ft/40ft containerized shipments or bulk bags.";
+      }
+      if (q.includes('pulse') || q.includes('dal')) {
+        return "We supply machine-cleaned, polished, food-grade Indian pulses graded to international phytosanitary parameters.";
+      }
+      if (q.includes('port') || q.includes('mundra') || q.includes('shipment') || q.includes('delivery')) {
+        return "Our primary dispatch gateway is Mundra Port (INMUN1), Gujarat. We support FOB, CFR, and CIF incoterms with standard container stuffing and phytosanitary fumigation.";
+      }
+      if (q.includes('price') || q.includes('quote') || q.includes('cost') || q.includes('rfq')) {
+        return "You can select commodities above using 'Add to manifest +' and dispatch your specifications directly to our Trade Desk or on WhatsApp at +91 8233036995 for immediate proforma pricing.";
+      }
+      return "Thank you for reaching TRIDEVA EXPORTS Trade Desk. Please specify your target commodity (Isabgol, Fenugreek, Millets, or Pulses), required volume, and destination discharge port to assist you.";
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      // Append User message
+      const userBubble = document.createElement('div');
+      userBubble.className = 'ai-bubble user';
+      userBubble.textContent = text;
+      messages.appendChild(userBubble);
+      input.value = '';
+      scrollToBottom();
+
+      // Simulated Commercial Processing delay
+      setTimeout(() => {
+        const reply = getTradeResponse(text);
+        const aiBubble = document.createElement('div');
+        aiBubble.className = 'ai-bubble assistant';
+        aiBubble.textContent = reply;
+        messages.appendChild(aiBubble);
+        scrollToBottom();
+      }, 550);
+    });
+
+    // Enter key sends, Shift+Enter creates line break
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.dispatchEvent(new Event('submit'));
       }
     });
   }
 
-  if (aiClose) {
-    aiClose.addEventListener("click", closeAssistant);
+  /* ==========================================================================
+     4. DYNAMIC YEAR IN FOOTER
+     ========================================================================== */
+  function initDynamicYear() {
+    const yearEl = document.getElementById('year');
+    if (yearEl) {
+      yearEl.textContent = String(new Date().getFullYear());
+    }
   }
 
-  if (aiForm) {
-    aiForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-
-      if (!aiInput) {
-        return;
-      }
-
-      const message = aiInput.value.trim();
-
-      if (!message) {
-        return;
-      }
-
-      addAssistantMessage(message, "user");
-      aiInput.value = "";
-
-      window.setTimeout(() => {
-        addAssistantMessage(
-          getAssistantResponse(message),
-          "assistant"
-        );
-      }, 420);
-    });
-  }
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeAssistant();
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    if (
-      !aiWindow ||
-      !aiLauncher ||
-      !aiWindow.classList.contains("active")
-    ) {
-      return;
-    }
-
-    const clickedInsideWindow = aiWindow.contains(event.target);
-    const clickedLauncher = aiLauncher.contains(event.target);
-
-    if (!clickedInsideWindow && !clickedLauncher) {
-      closeAssistant();
-    }
-  });
-
-  /* -------------------------
-     Optional Gyroscope Tilt
-  -------------------------- */
-
-  if (
-    !prefersReducedMotion &&
-    supportsTouch &&
-    "DeviceOrientationEvent" in window
-  ) {
-    const mobileTiltElements = $$("[data-tilt]");
-
-    const handleDeviceOrientation = (event) => {
-      const gamma = Number(event.gamma || 0);
-      const beta = Number(event.beta || 0);
-
-      const rotateY = Math.max(
-        -5,
-        Math.min(5, gamma * 0.18)
-      );
-
-      const rotateX = Math.max(
-        -4,
-        Math.min(4, (beta - 45) * 0.08)
-      );
-
-      mobileTiltElements.forEach((element) => {
-        element.style.transform = `
-          perspective(1000px)
-          rotateX(${-rotateX}deg)
-          rotateY(${rotateY}deg)
-        `;
+  /* ==========================================================================
+     5. SMOOTH INTER-SECTION NAVIGATION
+     ========================================================================== */
+  function initSmoothNavigation() {
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener('click', function (e) {
+        const targetId = this.getAttribute('href');
+        if (!targetId || targetId === '#') return;
+        const target = document.querySelector(targetId);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
       });
-    };
-
-    const enableOrientation = () => {
-      window.addEventListener(
-        "deviceorientation",
-        handleDeviceOrientation,
-        { passive: true }
-      );
-    };
-
-    /*
-     * iOS requires permission to access device orientation.
-     * The listener is enabled directly where permission is not required.
-     */
-    if (
-      typeof DeviceOrientationEvent.requestPermission ===
-      "function"
-    ) {
-      document.addEventListener(
-        "click",
-        () => {
-          DeviceOrientationEvent.requestPermission()
-            .then((permission) => {
-              if (permission === "granted") {
-                enableOrientation();
-              }
-            })
-            .catch(() => {
-              // Device orientation is optional.
-            });
-        },
-        { once: true }
-      );
-    } else {
-      enableOrientation();
-    }
+    });
   }
-
 })();
