@@ -1,24 +1,24 @@
 {
-  "version": 2,
-  "outputDirectory": ".",
-  "cleanUrls": true,
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        }
-      ]
-    }
-  ]
+  "name": "trideva-exports",
+  "version": "2.0.0",
+  "description": "TRIDEVA EXPORTS — Global Agro Commodities Commercial Platform",
+  "main": "app.js",
+  "type": "module",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve ."
+  },
+  "keywords": [
+    "export",
+    "commodities",
+    "isabgol",
+    "fenugreek",
+    "millets",
+    "pulses",
+    "trade",
+    "threejs"
+  ],
+  "author": "TRIDEVA EXPORTS",
+  "license": "UNLICENSED",
+  "private": true
 }
