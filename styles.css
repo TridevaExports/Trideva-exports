@@ -1871,3 +1871,6 @@ img {
     cursor: auto;
   }
 }
+body {
+  outline: 8px solid red !important;
+}
