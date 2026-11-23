@@ -1666,3 +1666,208 @@ img {
     transform: none !important;
   }
 }
+/* ==========================================================================
+   TRIDEVA 3D LUXURY CURSOR
+   Desktop pointer devices only
+   ========================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  html.trideva-cursor-enabled,
+  html.trideva-cursor-enabled body {
+    cursor: none;
+  }
+
+  html.trideva-cursor-enabled a,
+  html.trideva-cursor-enabled button,
+  html.trideva-cursor-enabled input,
+  html.trideva-cursor-enabled select,
+  html.trideva-cursor-enabled textarea {
+    cursor: none;
+  }
+
+  .trideva-cursor,
+  .trideva-cursor-ring,
+  .trideva-cursor-aura,
+  .trideva-cursor-label {
+    position: fixed;
+    z-index: 99999;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .trideva-cursor {
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    border: 2px solid #fff4bd;
+    border-radius: 50%;
+    background: #d7ad43;
+    box-shadow:
+      0 0 8px rgba(243, 220, 145, 0.95),
+      0 0 20px rgba(215, 173, 67, 0.75);
+    transform: translate3d(-50%, -50%, 0);
+    transition:
+      width 0.25s var(--ease),
+      height 0.25s var(--ease),
+      background 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+
+  .trideva-cursor::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    content: "";
+    background: #031008;
+    transform: translate(-50%, -50%);
+  }
+
+  .trideva-cursor-ring {
+    top: 0;
+    left: 0;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(243, 220, 145, 0.72);
+    border-radius: 50%;
+    background: rgba(215, 173, 67, 0.045);
+    box-shadow:
+      inset 0 0 10px rgba(243, 220, 145, 0.08),
+      0 0 18px rgba(215, 173, 67, 0.15);
+    transform: translate3d(-50%, -50%, 0);
+    transition:
+      width 0.35s var(--ease),
+      height 0.35s var(--ease),
+      border-color 0.35s ease,
+      background 0.35s ease,
+      transform 0.35s var(--ease);
+  }
+
+  .trideva-cursor-ring::before,
+  .trideva-cursor-ring::after {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border: 1px solid var(--emerald);
+    content: "";
+    opacity: 0.75;
+  }
+
+  .trideva-cursor-ring::before {
+    top: -3px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  .trideva-cursor-ring::after {
+    right: -3px;
+    bottom: 50%;
+    transform: translateY(50%) rotate(45deg);
+  }
+
+  .trideva-cursor-aura {
+    top: 0;
+    left: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background:
+      radial-gradient(
+        circle,
+        rgba(215, 173, 67, 0.13),
+        rgba(30, 212, 135, 0.05) 38%,
+        transparent 72%
+      );
+    filter: blur(5px);
+    opacity: 0.8;
+    transform: translate3d(-50%, -50%, 0);
+  }
+
+  .trideva-cursor-label {
+    top: 0;
+    left: 0;
+    padding: 4px 8px;
+    border: 1px solid rgba(243, 220, 145, 0.35);
+    border-radius: 5px;
+    background: rgba(3, 12, 8, 0.84);
+    color: var(--gold-light, #f3dc91);
+    font: 8px var(--mono, monospace);
+    letter-spacing: 0.12em;
+    opacity: 0;
+    transform: translate(18px, 18px);
+    transition: opacity 0.25s ease;
+  }
+
+  body.cursor-over-link .trideva-cursor,
+  body.cursor-over-button .trideva-cursor {
+    width: 17px;
+    height: 17px;
+    background: var(--emerald, #1ed487);
+    border-color: #c5ffe3;
+    box-shadow:
+      0 0 10px rgba(30, 212, 135, 1),
+      0 0 25px rgba(30, 212, 135, 0.8);
+  }
+
+  body.cursor-over-link .trideva-cursor-ring,
+  body.cursor-over-button .trideva-cursor-ring {
+    width: 54px;
+    height: 54px;
+    border-color: rgba(30, 212, 135, 0.8);
+    background: rgba(30, 212, 135, 0.08);
+  }
+
+  body.cursor-over-button .trideva-cursor-label {
+    opacity: 1;
+  }
+
+  body.cursor-over-card .trideva-cursor-ring {
+    width: 64px;
+    height: 64px;
+    border-color: rgba(243, 220, 145, 0.9);
+  }
+
+  body.cursor-over-card .trideva-cursor-aura {
+    width: 150px;
+    height: 150px;
+  }
+
+  body.cursor-clicking .trideva-cursor {
+    width: 7px;
+    height: 7px;
+  }
+
+  body.cursor-clicking .trideva-cursor-ring {
+    width: 25px;
+    height: 25px;
+  }
+
+  .trideva-cursor-trail {
+    position: fixed;
+    z-index: 99998;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--gold-light, #f3dc91);
+    box-shadow: 0 0 10px var(--gold, #d7ad43);
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.trideva-cursor-enabled,
+  html.trideva-cursor-enabled body,
+  html.trideva-cursor-enabled a,
+  html.trideva-cursor-enabled button,
+  html.trideva-cursor-enabled input,
+  html.trideva-cursor-enabled select,
+  html.trideva-cursor-enabled textarea {
+    cursor: auto;
+  }
+}
